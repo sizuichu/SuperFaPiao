@@ -1,0 +1,417 @@
+﻿<Window x:Class="FaPiao.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FaPiao"
+        mc:Ignorable="d"
+        Title="票据打印工具" 
+        Height="840" 
+        Width="1200"
+        Background="#F5F5F5"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- 按钮样式 -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#0D47A1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 工具栏按钮样式 -->
+        <Style x:Key="ToolBarButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E3F2FD"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#BBDEFB"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ComboBox样式 -->
+        <Style x:Key="ModernComboBox" TargetType="ComboBox">
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧预览区域 -->
+        <DockPanel Grid.Column="0" Margin="10">
+            <!-- 预览工具栏 -->
+            <Border DockPanel.Dock="Top" 
+                    Background="White" 
+                    BorderThickness="1" 
+                    BorderBrush="#BDBDBD"
+                    CornerRadius="4">
+                <ToolBar Height="58" 
+                         Background="Transparent"
+                         BorderThickness="0">
+                    <TextBlock Text="缩放：" 
+                              VerticalAlignment="Center" 
+                              Margin="5,0"/>
+                    <ComboBox x:Name="ZoomComboBox" 
+                             Width="80" 
+                             Style="{StaticResource ModernComboBox}"
+                             SelectionChanged="ZoomComboBox_SelectionChanged">
+                        <ComboBoxItem Content="50%"/>
+                        <ComboBoxItem Content="100%" IsSelected="True"/>
+                        <ComboBoxItem Content="150%"/>
+                        <ComboBoxItem Content="200%"/>
+                        <ComboBoxItem Content="适应窗口"/>
+                    </ComboBox>
+                    <Separator Margin="5,0" Background="#BDBDBD"/>
+                    <TextBlock Text="打印份数：" 
+                              VerticalAlignment="Center"
+                              Margin="5,0"/>
+                    <TextBox x:Name="CopiesTextBox"
+                            Width="40"
+                            Text="1"
+                            VerticalAlignment="Center"
+                            TextChanged="CopiesTextBox_TextChanged"/>
+                    <Separator Margin="5,0" Background="#BDBDBD"/>
+                    <Button x:Name="ExportPdfButton"
+                            Content="导出PDF"
+                            Style="{StaticResource ToolBarButton}"
+                            Click="ExportPdfButton_Click"
+                            Margin="5,5,5,5" Foreground="Red" BorderBrush="Silver"/>
+                    <Separator Margin="5,0" Background="#BDBDBD"/>
+                    <CheckBox x:Name="PrintBackgroundCheckBox"
+                            Content="打印背景" 
+                            IsChecked="True"
+                            VerticalAlignment="Center"
+                            Margin="5,0"
+                            Checked="PrintBackgroundCheckBox_Checked"
+                            Unchecked="PrintBackgroundCheckBox_Checked"/>
+                    <CheckBox x:Name="PrintBorderCheckBox"
+                            Content="打印边框" 
+                            IsChecked="True"
+                            VerticalAlignment="Center"
+                            Margin="5,0"
+                            Checked="PrintBorderCheckBox_Checked"
+                            Unchecked="PrintBorderCheckBox_Checked"/>
+                    <CheckBox x:Name="CenterOnPageCheckBox"
+                            Content="页面居中" 
+                            IsChecked="True"
+                            VerticalAlignment="Center"
+                            Margin="5,0"
+                            Checked="CenterOnPageCheckBox_Checked"
+                            Unchecked="CenterOnPageCheckBox_Checked"/>
+                </ToolBar>
+            </Border>
+
+            <!-- 预览区域 -->
+            <Border Background="#F0F0F0"
+                    Margin="0,10,0,0"
+                    BorderThickness="1"
+                    BorderBrush="#BDBDBD"
+                    CornerRadius="4">
+                <ScrollViewer x:Name="PreviewScrollViewer" Background="Transparent"
+                            HorizontalScrollBarVisibility="Auto" 
+                            VerticalScrollBarVisibility="Auto"
+                            PreviewMouseWheel="PreviewScrollViewer_PreviewMouseWheel">
+                    <Grid>
+                        <!-- 白色A4预览画布 -->
+                        <Border x:Name="PreviewBorder"
+                                Background="White"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="20">
+                            <Canvas x:Name="PreviewCanvas" Background="White">
+                                <Image x:Name="PdfImage" Stretch="Uniform"/>
+                            </Canvas>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
+        </DockPanel>
+
+        <!-- 分隔线 -->
+        <GridSplitter Grid.Column="1" 
+                     Width="5" 
+                     HorizontalAlignment="Stretch"
+                     Background="#E0E0E0"/>
+
+        <!-- 右侧操作面板 -->
+        <DockPanel Grid.Column="2" Margin="10">
+            <StackPanel DockPanel.Dock="Top">
+                <!-- 导入按钮 -->
+                <Button x:Name="ImportButton" 
+                       Content="导入票据文件" 
+                       Style="{StaticResource ModernButton}"
+                       Height="40"
+                       Margin="0,0,0,10"/>
+
+                <!-- 票据类型选择 -->
+                <GroupBox Header="票据类型" 
+                         Padding="10" 
+                         Margin="0,0,0,10"
+                         BorderThickness="1"
+                         BorderBrush="#BDBDBD">
+                    <ComboBox x:Name="TicketTypeComboBox" 
+                             Style="{StaticResource ModernComboBox}"
+                             SelectionChanged="TicketTypeComboBox_SelectionChanged">
+                        <ComboBoxItem Content="增值税电子发票" IsSelected="True"/>
+                        <ComboBoxItem Content="火车票"/>
+                        <ComboBoxItem Content="飞机行程单"/>
+                        <ComboBoxItem Content="出租车发票"/>
+                        <ComboBoxItem Content="其他票据"/>
+                    </ComboBox>
+                </GroupBox>
+
+                <!-- 打印设置 -->
+                <GroupBox Header="打印设置" 
+                         Padding="10" 
+                         Margin="0,0,0,10"
+                         BorderThickness="1"
+                         BorderBrush="#BDBDBD">
+                    <StackPanel>
+                        <TextBlock Text="页面布局" Margin="0,5"/>
+                        <WrapPanel x:Name="LayoutPanel" Orientation="Horizontal" Background="White">
+                            <RadioButton x:Name="SinglePortraitRadio"
+                                       Content="A4纵向-单张" 
+                                       GroupName="Layout" 
+                                       IsChecked="True"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="DoublePortraitRadio"
+                                       Content="A4纵向-双张" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="SingleLandscapeRadio"
+                                       Content="A4横向-单张" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="DoubleLandscapeRadio"
+                                       Content="A4横向-双张" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="FourTicketsRadio" 
+                                       Content="A4纵向-四张" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Visibility="Collapsed"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="FourTicketsLandscapeRadio" 
+                                       Content="A4横向-四张" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Visibility="Collapsed"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="AutoFitRadio" 
+                                       Content="A4纵向-自动适应" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                            <RadioButton x:Name="CustomSizeRadio" 
+                                       Content="自定义大小" 
+                                       GroupName="Layout"
+                                       Margin="5"
+                                       Checked="LayoutRadioButton_Checked"/>
+                        </WrapPanel>
+
+                        <Grid x:Name="CustomSizePanel" 
+                              Margin="0,10,0,0" 
+                              Visibility="Collapsed">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="宽度(mm):" 
+                                     Grid.Row="0" 
+                                     Grid.Column="0" 
+                                     Margin="0,0,5,0" 
+                                     VerticalAlignment="Center"/>
+                            <TextBox x:Name="CustomWidthBox" 
+                                   Grid.Row="0" 
+                                   Grid.Column="1" 
+                                   Text="210" 
+                                   Margin="0,0,10,0"
+                                   TextChanged="CustomSize_TextChanged"/>
+
+                            <TextBlock Text="高度(mm):" 
+                                     Grid.Row="0" 
+                                     Grid.Column="2" 
+                                     Margin="0,0,5,0" 
+                                     VerticalAlignment="Center"/>
+                            <TextBox x:Name="CustomHeightBox" 
+                                   Grid.Row="0" 
+                                   Grid.Column="3" 
+                                   Text="297"
+                                   TextChanged="CustomSize_TextChanged"/>
+
+                            <ComboBox x:Name="PaperSizeComboBox"
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="4"
+                                    Margin="0,5,0,0"
+                                    SelectionChanged="PaperSizeComboBox_SelectionChanged">
+                                <ComboBoxItem Content="A3 (297×420)"/>
+                                <ComboBoxItem Content="A4 (210×297)" IsSelected="True"/>
+                                <ComboBoxItem Content="A5 (148×210)"/>
+                                <ComboBoxItem Content="B4 (250×353)"/>
+                                <ComboBoxItem Content="B5 (176×250)"/>
+                                <ComboBoxItem Content="自定义"/>
+                            </ComboBox>
+                        </Grid>
+
+                        <Expander Header="图片质量设置" Margin="0,10,0,0">
+                            <StackPanel Margin="0,5">
+                                <DockPanel Margin="0,5">
+                                    <TextBlock Text="DPI:" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="DpiComboBox" 
+                                            Margin="5,0,0,0"
+                                            Style="{StaticResource ModernComboBox}"
+                                            SelectionChanged="DpiComboBox_SelectionChanged">
+                                        <ComboBoxItem Content="150 DPI"/>
+                                        <ComboBoxItem Content="300 DPI" IsSelected="True"/>
+                                        <ComboBoxItem Content="600 DPI"/>
+                                    </ComboBox>
+                                </DockPanel>
+
+                                <DockPanel Margin="0,5">
+                                    <TextBlock Text="质量:" VerticalAlignment="Center"/>
+                                    <Slider x:Name="QualitySlider" 
+                                           Margin="5,0,0,0"
+                                           Minimum="0" Maximum="100" Value="90"
+                                           ValueChanged="QualitySlider_ValueChanged"/>
+                                </DockPanel>
+
+                                <CheckBox x:Name="OptimizeCheckBox"
+                                        Content="启用图片优化" 
+                                        IsChecked="True" 
+                                        Margin="0,5"
+                                        Checked="OptimizeCheckBox_Checked" 
+                                        Unchecked="OptimizeCheckBox_Checked"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="页面边距" Margin="0,10,0,0">
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="上:" Grid.Row="0" Grid.Column="0" Margin="0,0,5,0"/>
+                                <TextBox x:Name="TopMarginBox" Grid.Row="0" Grid.Column="1" Text="10" TextChanged="Margin_TextChanged"/>
+
+                                <TextBlock Text="下:" Grid.Row="1" Grid.Column="0" Margin="0,5,5,0"/>
+                                <TextBox x:Name="BottomMarginBox" Grid.Row="1" Grid.Column="1" Text="10" Margin="0,5,0,0" TextChanged="Margin_TextChanged"/>
+
+                                <TextBlock Text="左:" Grid.Row="2" Grid.Column="0" Margin="0,5,5,0"/>
+                                <TextBox x:Name="LeftMarginBox" Grid.Row="2" Grid.Column="1" Text="10" Margin="0,5,0,0" TextChanged="Margin_TextChanged"/>
+
+                                <TextBlock Text="右:" Grid.Row="3" Grid.Column="0" Margin="0,5,5,0"/>
+                                <TextBox x:Name="RightMarginBox" Grid.Row="3" Grid.Column="1" Text="10" Margin="0,5,0,0" TextChanged="Margin_TextChanged"/>
+                            </Grid>
+                        </Expander>
+
+                        <Button x:Name="PrintButton" 
+                               Content="打印" 
+                               Style="{StaticResource ModernButton}"
+                               Height="40"
+                               Margin="0,10,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- 文件列表 -->
+                <GroupBox Header="已导入文件" 
+                         DockPanel.Dock="Top"
+                         Padding="10"
+                         BorderThickness="1"
+                         BorderBrush="#BDBDBD">
+                    <ScrollViewer Height="300">
+                        <ListBox x:Name="FileListBox" 
+                                Background="White"
+                                BorderThickness="0">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel LastChildFill="True" Margin="5">
+                                        <Button DockPanel.Dock="Right"
+                                               Content="删除"
+                                               Style="{StaticResource ToolBarButton}"
+                                               Command="{Binding DeleteCommand}"
+                                               CommandParameter="{Binding}"
+                                               Margin="10,0,0,0"
+                                               Padding="10,5"/>
+                                        <TextBlock Text="{Binding FileName}" 
+                                                 VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </ScrollViewer>
+                </GroupBox>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
