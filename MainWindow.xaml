@@ -149,6 +149,12 @@
                             Margin="5,0"
                             Checked="CenterOnPageCheckBox_Checked"
                             Unchecked="CenterOnPageCheckBox_Checked"/>
+                    <Separator Margin="5,0" Background="#BDBDBD"/>
+                    <Button x:Name="AboutButton"
+                            Content="关于"
+                            Style="{StaticResource ToolBarButton}"
+                            Click="AboutButton_Click"
+                            Margin="5,5,5,5"/>
                 </ToolBar>
             </Border>
 

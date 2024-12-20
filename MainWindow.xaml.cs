@@ -141,9 +141,6 @@ namespace FaPiao
         {
             try
             {
-                // 检查并初始化 PDF 组件
-                InitializePdfComponents();
-
                 // 首先初始化界面
                 InitializeComponent();
 
@@ -165,30 +162,6 @@ namespace FaPiao
             catch (Exception ex)
             {
                 MessageBox.Show($"初始化失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        private void InitializePdfComponents()
-        {
-            try
-            {
-                // 检查 pdfium.dll 是否存在
-                string pdfiumPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pdfium.dll");
-                if (!File.Exists(pdfiumPath))
-                {
-                    // 尝试从包目录复制
-                    string packagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "x64", "pdfium.dll");
-                    if (File.Exists(packagePath))
-                    {
-                        File.Copy(packagePath, pdfiumPath, true);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"PDF组件初始化失败: {ex.Message}\n" +
-                              "PDF预览功能可能无法使用。", 
-                              "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -325,7 +298,7 @@ namespace FaPiao
                 "增值税电子发票" => TicketType.EInvoice,
                 "火车票" => TicketType.TrainTicket,
                 "飞机行程单" => TicketType.FlightItinerary,
-                "出租车发票" => TicketType.TaxiInvoice,
+                "出��车发票" => TicketType.TaxiInvoice,
                 _ => TicketType.OtherTicket
             };
         }
@@ -344,12 +317,22 @@ namespace FaPiao
                 }
                 else
                 {
-                    return LoadAndOptimizeImage(filePath);
+                    using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                    {
+                        var image = new BitmapImage();
+                        image.BeginInit();
+                        image.CacheOption = BitmapCacheOption.OnLoad;
+                        image.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
+                        image.StreamSource = stream;
+                        image.EndInit();
+                        image.Freeze();
+                        return image;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载片失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"加载图片失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }
@@ -358,74 +341,50 @@ namespace FaPiao
         {
             try
             {
-                // 检查 pdfium.dll 是否存在
-                string pdfiumPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pdfium.dll");
-                if (!File.Exists(pdfiumPath))
+                using (var reader = new PdfReader(pdfPath))
                 {
-                    MessageBox.Show("未找到 pdfium.dll，请确保已正确安装 PdfiumViewer。\n" +
-                                  "请尝试重新安装 PdfiumViewer.Native.x86_64.v8-xfa 包。", 
-                                  "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return null;
-                }
-
-                // 使用 PdfiumViewer 加载 PDF
-                using (var pdfDocument = PdfiumViewer.PdfDocument.Load(pdfPath))
-                {
-                    if (pdfDocument == null)
-                    {
-                        MessageBox.Show("PDF 文件加载失败。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    if (reader.NumberOfPages < 1)
                         return null;
-                    }
 
-                    // 使用更高的DPI进行渲染
-                    int renderDpi = Math.Max(600, qualitySettings.Dpi * 2);
-                    using (var image = pdfDocument.Render(0, renderDpi, renderDpi, true))
+                    // 创建一个临时文件来存储转换后的图像
+                    string tempImagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".png");
+
+                    try
                     {
-                        if (image == null)
+                        // 使用iTextSharp提取第一页
+                        using (var document = new iTextSharp.text.Document())
+                        using (var stream = new FileStream(tempImagePath, FileMode.Create))
                         {
-                            MessageBox.Show("PDF 页面渲染失败。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                            return null;
+                            var writer = PdfWriter.GetInstance(document, stream);
+                            document.Open();
+
+                            // 获取第一页
+                            var page = writer.GetImportedPage(reader, 1);
+                            var contentByte = writer.DirectContent;
+                            contentByte.AddTemplate(page, 0, 0);
+
+                            document.Close();
                         }
 
-                        // 创建高质量位图
-                        using (var optimizedImage = new Bitmap(
-                            image.Width,
-                            image.Height,
-                            System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                        // 加载生成的图像
+                        using (var stream = new FileStream(tempImagePath, FileMode.Open, FileAccess.Read))
                         {
-                            optimizedImage.SetResolution(renderDpi, renderDpi);
-                            using (var g = Graphics.FromImage(optimizedImage))
-                            {
-                                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                                g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                                g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
-                                g.DrawImage(image, 0, 0, optimizedImage.Width, optimizedImage.Height);
-                            }
-
-                            // 转换为BitmapImage时使用高质量设置
-                            using (var memory = new MemoryStream())
-                            {
-                                var jpegEncoder = GetEncoderInfo("image/jpeg");
-                                var encoderParameters = new EncoderParameters(1);
-                                encoderParameters.Param[0] = new EncoderParameter(Encoder.Quality, 100L);
-                                
-                                optimizedImage.Save(memory, jpegEncoder, encoderParameters);
-                                memory.Position = 0;
-
-                                var bitmapImage = new BitmapImage();
-                                bitmapImage.BeginInit();
-                                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                                bitmapImage.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
-                                bitmapImage.DecodePixelWidth = optimizedImage.Width;
-                                bitmapImage.DecodePixelHeight = optimizedImage.Height;
-                                bitmapImage.StreamSource = memory;
-                                bitmapImage.EndInit();
-                                bitmapImage.Freeze();
-
-                                return bitmapImage;
-                            }
+                            var image = new BitmapImage();
+                            image.BeginInit();
+                            image.CacheOption = BitmapCacheOption.OnLoad;
+                            image.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
+                            image.StreamSource = stream;
+                            image.EndInit();
+                            image.Freeze();
+                            return image;
+                        }
+                    }
+                    finally
+                    {
+                        // 清理临时文件
+                        if (File.Exists(tempImagePath))
+                        {
+                            try { File.Delete(tempImagePath); } catch { }
                         }
                     }
                 }
@@ -433,84 +392,6 @@ namespace FaPiao
             catch (Exception ex)
             {
                 MessageBox.Show($"PDF转换失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                return null;
-            }
-        }
-
-        private BitmapImage LoadAndOptimizeImage(string imagePath)
-        {
-            using (var originalImage = System.Drawing.Image.FromFile(imagePath))
-            {
-                // 自动检测票据尺寸
-                var detectedSize = DetectTicketSize(originalImage);
-                if (detectedSize != null)
-                {
-                    // 更新当前票据类型的尺寸
-                    ticketSizes[currentTicketType] = detectedSize;
-                }
-
-                // 创建高分辨率的���图
-                var bitmap = new System.Drawing.Bitmap(
-                    originalImage.Width * 4, // 放大4倍以提高清晰度
-                    originalImage.Height * 4,
-                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-
-                // 设置DPI
-                bitmap.SetResolution(Math.Max(600, qualitySettings.Dpi * 2), Math.Max(600, qualitySettings.Dpi * 2));
-
-                // 使用高质量绘制
-                using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
-                {
-                    graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                    graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                    graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-                    graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
-
-                    // 绘制图像
-                    graphics.DrawImage(originalImage, 0, 0, bitmap.Width, bitmap.Height);
-                }
-
-                // 转换为BitmapImage
-                using (var memory = new MemoryStream())
-                {
-                    // 使用高质量PNG编码器（无损压缩）
-                    bitmap.Save(memory, ImageFormat.Png);
-                    memory.Position = 0;
-
-                    var bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.CreateOptions = BitmapCreateOptions.PreservePixelFormat;
-                    bitmapImage.StreamSource = memory;
-                    bitmapImage.EndInit();
-                    bitmapImage.Freeze();
-
-                    return bitmapImage;
-                }
-            }
-        }
-
-        private TicketSize DetectTicketSize(System.Drawing.Image image)
-        {
-            try
-            {
-                // 将图片尺寸从像素转换为毫米
-                double widthMm = image.Width / qualitySettings.Dpi * 25.4;
-                double heightMm = image.Height / qualitySettings.Dpi * 25.4;
-
-                // 判断方向
-                bool isLandscape = widthMm > heightMm;
-
-                return new TicketSize
-                {
-                    Width = Math.Min(widthMm, A4_WIDTH_MM),  // 确保不超过A4尺寸
-                    Height = Math.Min(heightMm, A4_HEIGHT_MM),
-                    IsLandscape = isLandscape
-                };
-            }
-            catch
-            {
                 return null;
             }
         }
@@ -1242,7 +1123,7 @@ namespace FaPiao
         {
             try
             {
-                // 获取Canvas的实��大小
+                // 获取Canvas的实际大小
                 double width = canvas.ActualWidth;
                 double height = canvas.ActualHeight;
                 if (width <= 0 || height <= 0)
@@ -1430,6 +1311,13 @@ namespace FaPiao
                 }
             }
             return result;
+        }
+
+        private void AboutButton_Click(object sender, RoutedEventArgs e)
+        {
+            var aboutWindow = new AboutWindow();
+            aboutWindow.Owner = this;
+            aboutWindow.ShowDialog();
         }
     }
 }
